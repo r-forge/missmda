@@ -3,7 +3,7 @@
 \title{Impute dataset with MFA}
 \description{Impute the missing values of a dataset with the Multiple Factor Analysis model. Can be used as a preliminary step before performing a MFA on an incomplete dataset with coninuous variables.}
 
-\usage{imputePCA(X, group, ncp = 2, scale = TRUE, method = "Regularized", 
+\usage{imputeMFA(X, group, ncp = 2, scale = TRUE, method = "Regularized", 
        threshold = 1e-06, seed = NULL, nb.init = 1, maxiter = 1000, ...)
 }
 

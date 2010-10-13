@@ -16,8 +16,8 @@ impute <- function (X, group, ncp = 4, scale=TRUE, method=NULL,threshold = 1e-6,
    if (any(is.na(X))) Xhat[missing] <- 0
    if (init>1) Xhat[missing] <- rnorm(length(missing)) ## random initialization
    recon <- Xhat
- ponderation = rep(nbr/svd(scale(Xhat[,1:group[1]],scale=F),nu=1,nv=1)$d[1]^2,group[1])
-       for (i in 2:length(group)) ponderation = c(ponderation,rep(nbr/svd(scale(Xhat[,(sum(group[1:(i-1)])+1):sum(group[1:i])],scale=F),nu=1,nv=1)$d[1]^2,group[i]))
+ ponderation = rep(nbr/svd(scale(Xhat[,1:group[1]],scale=FALSE),nu=1,nv=1)$d[1]^2,group[1])
+       for (i in 2:length(group)) ponderation = c(ponderation,rep(nbr/svd(scale(Xhat[,(sum(group[1:(i-1)])+1):sum(group[1:i])],scale=FALSE),nu=1,nv=1)$d[1]^2,group[i]))
  Xhat <- sweep(Xhat, 2, sqrt(ponderation), FUN = "*")
  
    nb.iter <- 1
@@ -31,8 +31,8 @@ impute <- function (X, group, ncp = 4, scale=TRUE, method=NULL,threshold = 1e-6,
        et <- apply(Xhat, 2, sd,na.rm=TRUE)
        Xhat=sweep(Xhat,2,moy.p, FUN="-")
        if (scale) Xhat=sweep(Xhat,2,et, FUN="/")
-       ponderation = rep(nbr/svd(scale(Xhat[,1:group[1]],scale=F),nu=1,nv=1)$d[1]^2,group[1])
-       for (i in 2:length(group)) ponderation = c(ponderation,rep(nbr/svd(scale(Xhat[,(sum(group[1:(i-1)])+1):sum(group[1:i])],scale=F),nu=1,nv=1)$d[1]^2,group[i]))
+       ponderation = rep(nbr/svd(scale(Xhat[,1:group[1]],scale=FALSE),nu=1,nv=1)$d[1]^2,group[1])
+       for (i in 2:length(group)) ponderation = c(ponderation,rep(nbr/svd(scale(Xhat[,(sum(group[1:(i-1)])+1):sum(group[1:i])],scale=FALSE),nu=1,nv=1)$d[1]^2,group[i]))
        Xhat = sweep(Xhat,2,sqrt(ponderation),FUN="*")
 
        svd.res <- svd.triplet(scale(Xhat,scale=FALSE))
