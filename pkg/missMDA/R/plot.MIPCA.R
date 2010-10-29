@@ -80,9 +80,7 @@ for (i in 1:dim(res$res.MI)[3]){
  rec.pca <- res$res.MI[,,i]
  acpfin <- PCA(rec.pca, scale=res$call$scale,graph=FALSE,ncp=ncp)
 
- res.proc <- procrustes(acpfin$ind$coord[,1:ncp], reference$ind$coord[,1:ncp],orthogonal = TRUE, translate = TRUE, magnify = TRUE)
- magnify <- res.proc$magnify
- tourne <- scale(acpfin$ind$coord[,1:ncp], scale = FALSE) %*% res.proc$tmat *magnify
+ tourne <- procrustes(acpfin$ind$coord[,1:ncp], reference$ind$coord[,1:ncp],orthogonal = TRUE, translate = TRUE, magnify = TRUE)$rmat
 
  colnames(tourne) <- colnames(res.procrustes)
  colnames(rec.pca) <- colnames(res.supp)
@@ -104,9 +102,7 @@ el=coord.ellipse(cbind.data.frame(as.factor(rep(rownames(res$call$X),res$call$nb
 
 #  if (!is.null(add.tab)){
 #    vrai = PCA(add.tab,graph=FALSE,scale=res$call$scale)
-#    proc <- procrustes(vrai$ind$coord[,axes], reference$ind$coord[,axes],orthogonal = TRUE, translate = TRUE, magnify = TRUE)
-#    magnify <- proc$magnify
-#    tourne <- scale(vrai$ind$coord[,axes], scale = FALSE) %*% proc$tmat *magnify
+#    tourne <- procrustes(vrai$ind$coord[,axes], reference$ind$coord[,axes],orthogonal = TRUE, translate = TRUE, magnify = TRUE)$rmat
 #    points(tourne[,axes],cex=0.9,col=2)
 #  }
 }
