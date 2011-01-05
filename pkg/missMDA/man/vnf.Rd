@@ -8,11 +8,14 @@ Questionnaire done by 1232 individuals who answered 14 questions
 A user satisfaction survey of pleasure craft operators on the ``Canal des Deux Mers'', located in South of France, was carried out by the public corporation ``Voies Navigables de France'' responsible for managing and developing the largest network of navigable waterways in Europe
 }
 \usage{data(vnf)}
+
 \format{
-  A data frame with 1232 observations on the following 14 categorical variables.
+A data frame with 1232 observations on 14 categorical variables.
 }
 
-\source{Josse, J., Chavent, M., Liquet, B. and Husson, F. (2010). Handling missing values with Regularized Iterative Multiple Correspondence Analysis.}
+\source{
+Josse, J., Chavent, M., Liquet, B. and Husson, F. (2010). Handling missing values with Regularized Iterative Multiple Correspondence Analysis.
+}
 
 \examples{
 data(vnf)

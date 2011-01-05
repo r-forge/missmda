@@ -21,13 +21,15 @@ for(i in 1:nboot){
 ### Sampling variability
  resid.star <- matrix(rnorm(nrow(X)*ncol(X),0,sigma),ncol=ncol(X))
  if (scale) resid.star <- sweep(resid.star,2,sd_resid,FUN="*") ###
- Xstar <- rec+resid.star
+ resid.star[missing]<- NA
+ Xstar <- rec+resid.star-matrix(mean(resid.star,na.rm=TRUE),ncol=ncol(resid.star),nrow=nrow(resid.star))
+
+# Xstar <- rec+resid.star
 ## 2 rows to add some NA values
- missing2 <- sample(1:(nrow(X)*ncol(X)),length(missing))
-
+# missing2 <- sample(1:(nrow(X)*ncol(X)),length(missing))
 ##missing2=missing
+# Xstar[missing2] <- NA
 
- Xstar[missing2] <- NA
  acpboot <- PCA(imputePCA(Xstar,scale=scale,ncp=ncp,method=method,threshold=threshold)$completeObs,scale=scale,ncp=ncp,graph=FALSE)
 
 ###Drawing from the predictive distribution
