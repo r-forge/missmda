@@ -39,12 +39,13 @@ impute <- function (X, group, ncp = 4, scale=TRUE, method=NULL,threshold = 1e-6,
        sigma2 <- mean(svd.res$vs[-(1:ncp)]^2)
        if (method=="em") sigma2 <-0
 
+       lambda.shrinked=(svd.res$vs[1:ncp]^2-sigma2)/sqrt(svd.res$vs[1:ncp]^2)
        if (ncp==1) {
-         lambda.shrinked=(svd.res$vs[1]^2-sigma2)/sqrt(svd.res$vs[1]^2)
-         recon=(svd.res$U[,1]%*%diag(lambda.shrinked[1],1)%*%(t(svd.res$V[,1])))
+         recon=tcrossprod(svd.res$U[,1]*lambda.shrinked,svd.res$V[,1])
        } else {
-         lambda.shrinked=diag((svd.res$vs[1:ncp]^2-sigma2)/sqrt(svd.res$vs[1:ncp]^2))
-         recon=(svd.res$U[,1:ncp]%*%lambda.shrinked%*% (t(svd.res$V[,1:ncp])))
+         recon=tcrossprod(sweep(svd.res$U[,1:ncp],2,lambda.shrinked,FUN="*"),svd.res$V[,1:ncp])
+##         lambda.shrinked=diag((svd.res$vs[1:ncp]^2-sigma2)/sqrt(svd.res$vs[1:ncp]^2))
+##         recon=(svd.res$U[,1:ncp]%*%lambda.shrinked%*% (t(svd.res$V[,1:ncp])))
        }
 
        objective <- mean((Xhat[-missing]-recon[-missing])^2)

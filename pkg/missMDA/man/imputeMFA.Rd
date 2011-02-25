@@ -36,7 +36,7 @@ Impute the missing entries of a data frame using the iterative MFA algorithm (EM
 \seealso{\code{\link{imputePCA}}}
 \examples{
 data(orange)
-res.comp <- imputePCA(orange,group=c(5,3),scale=TRUE,ncp=2)
+res.comp <- imputeMFA(orange,group=c(5,3),scale=TRUE,ncp=2)
 res.pca <- MFA(res.comp$completeObs,group=c(5,3),type=rep("s",2))
 }
 \keyword{models}

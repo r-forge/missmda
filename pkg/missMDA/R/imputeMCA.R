@@ -93,13 +93,14 @@ while (continue){
     if (nrow(don)>ncol(Zscale)) moyeig=mean(svd.Zscale$vs[-c(1:ncp,(length(svd.Zscale$vs)-ncol(don)+1):length(svd.Zscale$vs))]^2)
     else moyeig=mean(svd.Zscale$vs[-c(1:ncp)]^2)
   }
-  if (ncp==1) eig.shrunk=diag(((svd.Zscale$vs[1]^2-moyeig)/svd.Zscale$vs[1]),1)
-  else eig.shrunk=diag(((svd.Zscale$vs[1:ncp]^2-moyeig)/svd.Zscale$vs[1:ncp])) 
+  eig.shrunk=((svd.Zscale$vs[1:ncp]^2-moyeig)/svd.Zscale$vs[1:ncp])
         
-  rec=svd.Zscale$U[,1:ncp]%*%eig.shrunk%*% (t(svd.Zscale$V[,1:ncp]))
+  if (ncp==1) rec=tcrossprod(svd.Zscale$U[,1]*eig.shrunk,svd.Zscale$V[,1])
+#  rec=svd.Zscale$U[,1:ncp]%*%diag(eig.shrunk)%*% (t(svd.Zscale$V[,1:ncp]))
+  else rec=tcrossprod(sweep(svd.Zscale$U[,1:ncp],2,eig.shrunk,FUN="*"),svd.Zscale$V[,1:ncp])
         
   tab.disj.rec = sweep(rec,2,inv_racine_M,FUN="*") + matrix(1,nrow(rec),ncol(rec)) 
-  tab.disj.rec=D_I%*%sweep(tab.disj.rec,2,apply(tab.disj.comp,2,sum),FUN="*")
+  tab.disj.rec=crossprod(t(D_I),sweep(tab.disj.rec,2,apply(tab.disj.comp,2,sum),FUN="*"))
   relch=sum((tab.disj.rec[hidden] - tab.disj.rec.old[hidden])^2)
   tab.disj.rec.old=tab.disj.rec
   tab.disj.comp[hidden] = tab.disj.rec[hidden]
