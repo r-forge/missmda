@@ -38,6 +38,7 @@ for(i in 1:nboot){
  rec.pca[missing] <- (reconst(acpboot,ncp)+residstar2)[missing]
  res.MI[,,i] <- rec.pca
 }
+ dimnames(res.MI)=list(rownames(X),colnames(X),NULL)
  result=list(res.imputePCA=impute.data,res.MI=res.MI,call=list(X=X,ncp=ncp,missing=missing,nboot=nboot,scale=scale))
  class(result) <- c("MIPCA", "list")
  return(result)
