@@ -1,5 +1,9 @@
-imputeMCA <- function(don,ncp=2,threshold=1e-6,seed=NULL,maxiter=1000){   
+imputeMCA <- function(don,ncp=2,threshold=1e-6,seed=NULL,row.w=NULL,maxiter=1000){   
  
+    moy.p <- function(V, poids) {
+        res <- sum(V * poids,na.rm=TRUE)/sum(poids[!is.na(V)])
+    }
+	
     tab.disjonctif.NA <- function(tab) {
         tab <- as.data.frame(tab)
         modalite.disjonctif <- function(i) {
@@ -28,80 +32,55 @@ imputeMCA <- function(don,ncp=2,threshold=1e-6,seed=NULL,maxiter=1000){
         return(res)
     }
 
-tab.disjonctif.prop<-function (tab,seed=NULL) 
-{
-    tab <- as.data.frame(tab)
-    modalite.disjonctif <- function(i) {
-        moda <- tab[, i]
-        nom <- names(tab)[i]
-        n <- length(moda)
-        moda <- as.factor(moda)
-        x <- matrix(0, n, length(levels(moda)))
-          ind<-(1:n) + n * (unclass(moda) - 1)
-          indNA<-which(is.na(ind))
-                
-        x[(1:n) + n * (unclass(moda) - 1)] <- 1
-        if (length(indNA)!=0){
-          if (is.null(seed)) {
-           x[indNA,]<- matrix(rep(apply(x,2,sum)/sum(x),each=length(indNA)),nrow=length(indNA))
-          } else {
-           for (k in 1:length(indNA)) {
-            aux <- runif(length(levels(moda)))
-            x[indNA[k],]=aux/sum(aux)
-           }
-          }
-         }
-          if ((ncol(tab) != 1) & (levels(moda)[1] %in% c(1:nlevels(moda),"n", "N", "y", "Y"))) 
-            dimnames(x) <- list(row.names(tab), paste(nom, levels(moda),sep = "."))
-        else dimnames(x) <- list(row.names(tab), levels(moda))
-        return(x)
-    }
-    if (ncol(tab) == 1) 
-        res <- modalite.disjonctif(1)
-    else {
-        res <- lapply(1:ncol(tab), modalite.disjonctif)
-        res <- as.matrix(data.frame(res, check.names = FALSE))
-    }
-    return(res)
-}
-
 ########## Debut programme principal
-if (ncp==0) return(tab.disjonctif.prop(don,NULL))
+if (is.null(row.w)) row.w=rep(1/nrow(don),nrow(don))
+if (ncp==0) return(tab.disjonctif.prop(don,NULL,row.w=row.w))
 
 tab.disj.NA = tab.disjonctif.NA(don)
 hidden = which(is.na(tab.disj.NA))
-tab.disj.comp=tab.disjonctif.prop(don,seed)
+tab.disj.comp=tab.disjonctif.prop(don,seed,row.w=row.w)
 tab.disj.rec.old=tab.disj.comp
 
-
-D_I = diag(1/nrow(don),nrow(don))
-inv_D_I = diag(nrow(don),nrow(don))
 continue=TRUE
 nbiter=0
 
 while (continue){
   nbiter=nbiter+1
-  M = apply(tab.disj.comp,2,sum)/(nrow(don)*ncol(don))
-  Z=nrow(don)*sweep(tab.disj.comp,2,apply(tab.disj.comp,2,sum),FUN="/")
-  Z=scale(Z,scale=FALSE)
-  inv_racine_M = sqrt((nrow(don)*ncol(don))/apply(tab.disj.comp,2,sum))
+
+#  M = apply(tab.disj.comp,2,sum)/(nrow(don)*ncol(don))
+#  Z=nrow(don)*sweep(tab.disj.comp,2,apply(tab.disj.comp,2,sum),FUN="/")
+#  A=scale(Z,scale=FALSE)
+
+  M = apply(tab.disj.comp, 2, moy.p,row.w)/ncol(don)
+  Z = sweep(tab.disj.comp, 2, apply(tab.disj.comp, 2, moy.p,row.w), FUN = "/")
+  Z = sweep(Z, 2,apply(Z,2,moy.p,row.w),FUN="-")
   Zscale=sweep(Z,2,sqrt(M),FUN="*")
 
-  svd.Zscale=svd.triplet(Zscale)
+#  svd.Zscale=svd.triplet(Zscale)
+  svd.Zscale=svd.triplet(Zscale,row.w=row.w)
   moyeig=0
   if (ncp>0){
-    if (nrow(don)>ncol(Zscale)) moyeig=mean(svd.Zscale$vs[-c(1:ncp,(length(svd.Zscale$vs)-ncol(don)+1):length(svd.Zscale$vs))]^2)
+    if (nrow(don)>(ncol(Zscale)-ncol(don))) moyeig=mean(svd.Zscale$vs[-c(1:ncp,(ncol(Zscale)-ncol(don)+1):ncol(Zscale))]^2)
     else moyeig=mean(svd.Zscale$vs[-c(1:ncp)]^2)
   }
+### a enlever
+#print(svd.Zscale$vs[-c(1:ncp,(ncol(Zscale)-ncol(don)+1):ncol(Zscale))]^2)
+#print(moyeig)
+#moyeig=min(moyeig*2,svd.Zscale$vs[ncp+1]^2)
+### fin a enlever
   eig.shrunk=((svd.Zscale$vs[1:ncp]^2-moyeig)/svd.Zscale$vs[1:ncp])
-        
+
   if (ncp==1) rec=tcrossprod(svd.Zscale$U[,1]*eig.shrunk,svd.Zscale$V[,1])
-#  rec=svd.Zscale$U[,1:ncp]%*%diag(eig.shrunk)%*% (t(svd.Zscale$V[,1:ncp]))
   else rec=tcrossprod(sweep(svd.Zscale$U[,1:ncp],2,eig.shrunk,FUN="*"),svd.Zscale$V[,1:ncp])
         
-  tab.disj.rec = sweep(rec,2,inv_racine_M,FUN="*") + matrix(1,nrow(rec),ncol(rec)) 
-  tab.disj.rec=crossprod(t(D_I),sweep(tab.disj.rec,2,apply(tab.disj.comp,2,sum),FUN="*"))
-  relch=sum((tab.disj.rec[hidden] - tab.disj.rec.old[hidden])^2)
+  tab.disj.rec = sweep(rec,2,sqrt(M),FUN="/") + matrix(1,nrow(rec),ncol(rec)) 
+  tab.disj.rec = sweep(tab.disj.rec,2,apply(tab.disj.comp,2,moy.p,row.w),FUN="*")
+#  tab.disj.rec=sweep(sweep(tab.disj.rec,1,row.w,FUN="*"),2,apply(tab.disj.comp,2,sum),FUN="*")
+
+  diff <- tab.disj.rec - tab.disj.rec.old
+  diff[hidden] <- 0
+  relch <- sum(sweep(diff^2,1,row.w,FUN="*"))
+#  relch=sum((tab.disj.rec[hidden] - tab.disj.rec.old[hidden])^2)
   tab.disj.rec.old=tab.disj.rec
   tab.disj.comp[hidden] = tab.disj.rec[hidden]
   continue=(relch > threshold)&(nbiter<maxiter)
