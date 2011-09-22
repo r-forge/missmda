@@ -1,6 +1,6 @@
-imputePCA <- function (X, ncp = 2, scale=TRUE, method="Regularized",threshold = 1e-6,seed = NULL,nb.init=1,maxiter=1000,row.w=NULL,...){
+imputePCA <- function (X, ncp = 2, scale=TRUE, method="Regularized",row.w=NULL,coeff.ridge=1,threshold = 1e-6,seed = NULL,nb.init=1,maxiter=1000,...){
 
-impute <- function (X, ncp = 4, scale=TRUE, method=NULL,threshold = 1e-6,seed = NULL,init=1,maxiter=1000,row.w=NULL,...){
+impute <- function (X, ncp = 4, scale=TRUE, method=NULL,threshold = 1e-6,seed = NULL,init=1,maxiter=1000,row.w=NULL,coeff.ridge=1,...){
 
     moy.p <- function(V, poids) {
         res <- sum(V * poids,na.rm=TRUE)/sum(poids[!is.na(V)])
@@ -34,15 +34,14 @@ impute <- function (X, ncp = 4, scale=TRUE, method=NULL,threshold = 1e-6,seed = 
 
        svd.res <- svd.triplet(Xhat,row.w=row.w)
        sigma2 <- mean(svd.res$vs[-(1:ncp)]^2)
+       sigma2 <- min(sigma2*coeff.ridge,svd.res$vs[ncp+1]^2)
        if (method=="em") sigma2 <-0
 
        if (ncp==1) {
          lambda.shrinked=(svd.res$vs[1]^2-sigma2)/svd.res$vs[1]
-##         recon=(svd.res$U[,1]%*%diag(lambda.shrinked[1],1)%*%(t(svd.res$V[,1])))
          recon=tcrossprod(sweep(svd.res$U[,1],1,row.w,FUN="*")*lambda.shrinked[1],svd.res$V[,1])
        } else {
          lambda.shrinked=(svd.res$vs[1:ncp]^2-sigma2)/svd.res$vs[1:ncp]
-##         recon=(svd.res$U[,1:ncp]%*%lambda.shrinked%*% (t(svd.res$V[,1:ncp])))
          recon = tcrossprod(sweep(sweep(svd.res$U[,1:ncp],1,row.w,FUN="*"),2,lambda.shrinked,FUN="*"),svd.res$V[,1:ncp])
        }
        recon <- sweep(recon,1,row.w,FUN="/")
@@ -82,7 +81,7 @@ impute <- function (X, ncp = 4, scale=TRUE, method=NULL,threshold = 1e-6,seed = 
  if (is.null(row.w)) row.w = rep(1,nrow(X))/nrow(X)
  for (i in 1:nb.init){
   if (!any(is.na(X))) return(X)
-  res.impute=impute(X, ncp=ncp, scale=scale, method=method, threshold = threshold,seed=seed,init=i,maxiter=maxiter,row.w=row.w)
+  res.impute=impute(X, ncp=ncp, scale=scale, method=method, threshold = threshold,seed=seed,init=i,maxiter=maxiter,row.w=row.w,coeff.ridge=coeff.ridge)
   if (mean((res.impute$recon[!is.na(X)]-X[!is.na(X)])^2) < obj){
     res <- res.impute
     obj <- mean((res.impute$recon[!is.na(X)]-X[!is.na(X)])^2)

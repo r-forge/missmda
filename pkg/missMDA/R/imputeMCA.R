@@ -1,4 +1,4 @@
-imputeMCA <- function(don,ncp=2,threshold=1e-6,seed=NULL,row.w=NULL,maxiter=1000){   
+imputeMCA <- function(don,ncp=2,row.w=NULL,coeff.ridge=1,threshold=1e-6,seed=NULL,maxiter=1000){   
  
     moy.p <- function(V, poids) {
         res <- sum(V * poids,na.rm=TRUE)/sum(poids[!is.na(V)])
@@ -46,28 +46,18 @@ nbiter=0
 
 while (continue){
   nbiter=nbiter+1
-
-#  M = apply(tab.disj.comp,2,sum)/(nrow(don)*ncol(don))
-#  Z=nrow(don)*sweep(tab.disj.comp,2,apply(tab.disj.comp,2,sum),FUN="/")
-#  A=scale(Z,scale=FALSE)
-
   M = apply(tab.disj.comp, 2, moy.p,row.w)/ncol(don)
   Z = sweep(tab.disj.comp, 2, apply(tab.disj.comp, 2, moy.p,row.w), FUN = "/")
   Z = sweep(Z, 2,apply(Z,2,moy.p,row.w),FUN="-")
   Zscale=sweep(Z,2,sqrt(M),FUN="*")
 
-#  svd.Zscale=svd.triplet(Zscale)
   svd.Zscale=svd.triplet(Zscale,row.w=row.w)
   moyeig=0
   if (ncp>0){
     if (nrow(don)>(ncol(Zscale)-ncol(don))) moyeig=mean(svd.Zscale$vs[-c(1:ncp,(ncol(Zscale)-ncol(don)+1):ncol(Zscale))]^2)
     else moyeig=mean(svd.Zscale$vs[-c(1:ncp)]^2)
   }
-### a enlever
-#print(svd.Zscale$vs[-c(1:ncp,(ncol(Zscale)-ncol(don)+1):ncol(Zscale))]^2)
-#print(moyeig)
-#moyeig=min(moyeig*2,svd.Zscale$vs[ncp+1]^2)
-### fin a enlever
+  moyeig=min(moyeig*coeff.ridge,svd.Zscale$vs[ncp+1]^2)
   eig.shrunk=((svd.Zscale$vs[1:ncp]^2-moyeig)/svd.Zscale$vs[1:ncp])
 
   if (ncp==1) rec=tcrossprod(svd.Zscale$U[,1]*eig.shrunk,svd.Zscale$V[,1])
@@ -75,12 +65,10 @@ while (continue){
         
   tab.disj.rec = sweep(rec,2,sqrt(M),FUN="/") + matrix(1,nrow(rec),ncol(rec)) 
   tab.disj.rec = sweep(tab.disj.rec,2,apply(tab.disj.comp,2,moy.p,row.w),FUN="*")
-#  tab.disj.rec=sweep(sweep(tab.disj.rec,1,row.w,FUN="*"),2,apply(tab.disj.comp,2,sum),FUN="*")
 
   diff <- tab.disj.rec - tab.disj.rec.old
   diff[hidden] <- 0
   relch <- sum(sweep(diff^2,1,row.w,FUN="*"))
-#  relch=sum((tab.disj.rec[hidden] - tab.disj.rec.old[hidden])^2)
   tab.disj.rec.old=tab.disj.rec
   tab.disj.comp[hidden] = tab.disj.rec[hidden]
   continue=(relch > threshold)&(nbiter<maxiter)

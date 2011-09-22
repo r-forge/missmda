@@ -1,6 +1,6 @@
-imputeMFA2 <- function (X, group, ncp = 2, type=rep("s",length(group)), method="Regularized",threshold = 1e-6,seed = NULL,nb.init=1,maxiter=1000,row.w=NULL,...){
+imputeMFA <- function (X, group, ncp = 2, type=rep("s",length(group)), method="Regularized",row.w=NULL,coeff.ridge=1,threshold = 1e-6,seed = NULL,nb.init=1,maxiter=1000,...){
 
-impute <- function (X, group, ncp = 2, type=rep("s",length(group)), method=NULL,threshold = 1e-6,seed = NULL,init=1,maxiter=1000,row.w=NULL,...){
+impute <- function (X, group, ncp = 2, type=rep("s",length(group)), method=NULL,threshold = 1e-6,seed = NULL,init=1,maxiter=1000,row.w=NULL,coeff.ridge=1,...){
     moy.p <- function(V, poids) {
         res <- sum(V * poids,na.rm=TRUE)/sum(poids[!is.na(V)])
     }
@@ -86,9 +86,6 @@ impute <- function (X, group, ncp = 2, type=rep("s",length(group)), method=NULL,
 		   tab.disj = tab.disjonctif.prop(aux.base,row.w=row.w)
 		   tab.disj.comp[[g]] = tab.disj
 		   group.mod[g] <- ncol(tab.disj)
-##           MM[[g]] = apply(tab.disj, 2, sum)/(nrow(aux.base) * ncol(aux.base))
-##           Z = nrow(aux.base) * sweep(tab.disj, 2, apply(tab.disj,2, sum), FUN = "/")
-##           Z = scale(Z, scale = FALSE)
            MM[[g]] = apply(tab.disj, 2, moy.p,row.w)/ncol(aux.base)
            Z = sweep(tab.disj, 2, apply(tab.disj, 2, moy.p,row.w), FUN = "/")
            Z = sweep(Z, 2,apply(Z,2,moy.p,row.w),FUN="-")
@@ -130,15 +127,11 @@ impute <- function (X, group, ncp = 2, type=rep("s",length(group)), method=NULL,
         }
         if (type[g] == "n") {
           tab.disj = sweep(aux.base,2,sqrt(MM[[g]]),FUN="/") + matrix(1,nrow(aux.base),ncol(aux.base)) 
-##          tab.disj = sweep(sweep(tab.disj,1,row.w,FUN="*"),2,apply(tab.disj.comp[[g]],2,sum),FUN="*")
           tab.disj = sweep(tab.disj,2,apply(tab.disj.comp[[g]],2,moy.p,row.w),FUN="*")
           tab.disj.comp[[g]] = tab.disj
-           MM[[g]] = apply(tab.disj, 2, moy.p,row.w)/ncol(aux.base)
-           Z = sweep(tab.disj, 2, apply(tab.disj, 2, moy.p,row.w), FUN = "/")
-           Z = sweep(Z, 2,apply(Z,2,moy.p,row.w),FUN="-")
-##          MM[[g]] = apply(tab.disj, 2, sum)/(nrow(aux.base) * ncol(aux.base))
-##          Z = nrow(aux.base) * sweep(tab.disj, 2, apply(tab.disj,2, sum), FUN = "/")
-##          Z = scale(Z, scale = FALSE)
+          MM[[g]] = apply(tab.disj, 2, moy.p,row.w)/ncol(aux.base)
+          Z = sweep(tab.disj, 2, apply(tab.disj, 2, moy.p,row.w), FUN = "/")
+          Z = sweep(Z, 2,apply(Z,2,moy.p,row.w),FUN="-")
 	      aux.base = sweep(Z, 2, sqrt(MM[[g]]), FUN = "*")
           ponderation[g] <- svd.triplet(aux.base,row.w=row.w)$vs[1]
         }
@@ -147,6 +140,8 @@ impute <- function (X, group, ncp = 2, type=rep("s",length(group)), method=NULL,
 	}
 	 svd.res <- svd.triplet(Xhat,row.w=row.w)
      sigma2 <- mean(svd.res$vs[-(1:ncp)]^2)
+     sigma2 <- min(sigma2*coeff.ridge,svd.res$vs[ncp+1]^2)
+	 
      if (method=="em") sigma2 <-0
      lambda.shrinked=(svd.res$vs[1:ncp]^2-sigma2)/svd.res$vs[1:ncp]
      if (ncp==1) recon=tcrossprod(sweep(svd.res$U[,1,drop=FALSE],1,row.w,FUN="*")*lambda.shrinked,svd.res$V[,1,drop=FALSE])
@@ -203,7 +198,7 @@ impute <- function (X, group, ncp = 2, type=rep("s",length(group)), method=NULL,
 # for (i in 1:nb.init){
 i=1
   if (!any(is.na(X))) stop("no missing values in X, this function is not useful. Perform MFA on X.")
-  res.impute <- impute(X, group=group,ncp=ncp, type=type, method=method, threshold = threshold,seed=seed,init=i,maxiter=maxiter,row.w=row.w)
+  res.impute <- impute(X, group=group,ncp=ncp, type=type, method=method, threshold = threshold,seed=seed,init=i,maxiter=maxiter,row.w=row.w,coeff.ridge=coeff.ridge)
 return(res.impute)
 #  if (mean((res.impute$recon[!is.na(X)]-X[!is.na(X)])^2) < obj){
 #    res <- res.impute
