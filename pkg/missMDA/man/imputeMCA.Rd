@@ -4,7 +4,7 @@
 \title{Impute missing values in categorical variables with Multiple Correspondence Analysis}
 \description{Impute the missing values of a categorical dataset (in the indicator matrix) with Multiple Correspondence Analysis}
 \usage{
-imputeMCA(don, ncp=2, threshold=1e-06, seed=NULL, maxiter=1000)
+imputeMCA(don, ncp=2, threshold=1e-06, seed=NULL, row.w=NULL, maxiter=1000)
 }
 
 \arguments{
@@ -12,6 +12,7 @@ imputeMCA(don, ncp=2, threshold=1e-06, seed=NULL, maxiter=1000)
   \item{ncp}{integer corresponding to the number of dimensions used to reconstruct data with the reconstruction formulae}
   \item{threshold}{the threshold for assessing convergence}
   \item{seed}{an integer to specify the seed for the initialization for the regularized iterative MCA algorithm (if seed = NULL the initialization step corresponds to the imputation of the proportion of each category)}
+  \item{row.w}{an optional row weights (by default, a vector of 1 over the number of rows for uniform row weights)}
   \item{maxiter}{integer, maximum number of iterations for the regularized iterative MCA algorithm}
 }
 \details{

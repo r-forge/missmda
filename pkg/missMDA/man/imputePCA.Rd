@@ -3,7 +3,7 @@
 \title{Impute dataset with PCA}
 \description{Impute the missing values of a dataset with the Principal Components Analysis model. Can be used as a preliminary step before performing a PCA on an incomplete dataset.}
 \usage{imputePCA(X, ncp = 2, scale = TRUE, method = "Regularized", 
-       threshold = 1e-06, seed = NULL, nb.init = 1, maxiter = 1000, ...)
+       threshold = 1e-06, seed = NULL, nb.init = 1, maxiter = 1000, row.w=NULL,...)
 }
 
 \arguments{
@@ -15,6 +15,7 @@
   \item{seed}{a single value, interpreted as an integer for the set.seed function (if seed = NULL, missing values are initially imputed by the mean of each variable)}
   \item{nb.init}{integer corresponding to the number of random initializations; the first initialization is the mean of each variable}
   \item{maxiter}{integer, maximum number of iteration for the algorithm}
+  \item{row.w}{an optional row weights (by default, a vector of 1 over the number of rows for uniform row weights)}
   \item{\dots}{further arguments passed to or from other methods}
 }
 \details{
