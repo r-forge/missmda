@@ -1,7 +1,6 @@
 imputePCA <- function (X, ncp = 2, scale=TRUE, method="Regularized",row.w=NULL,coeff.ridge=1,threshold = 1e-6,seed = NULL,nb.init=1,maxiter=1000,...){
 
 impute <- function (X, ncp = 4, scale=TRUE, method=NULL,threshold = 1e-6,seed = NULL,init=1,maxiter=1000,row.w=NULL,coeff.ridge=1,...){
-
     moy.p <- function(V, poids) {
         res <- sum(V * poids,na.rm=TRUE)/sum(poids[!is.na(V)])
     }
@@ -9,6 +8,9 @@ impute <- function (X, ncp = 4, scale=TRUE, method=NULL,threshold = 1e-6,seed = 
         res <- sqrt(sum(V^2 * poids,na.rm=TRUE)/sum(poids[!is.na(V)]))
     }
 
+   nb.iter <- 1
+   old <- Inf
+   objective <- 0
    if (!is.null(seed)) set.seed(seed)
    X <- as.matrix(X)
    ncp <- min(ncp,ncol(X),nrow(X)-1)
@@ -20,9 +22,8 @@ impute <- function (X, ncp = 4, scale=TRUE, method=NULL,threshold = 1e-6,seed = 
    if (any(is.na(X))) Xhat[missing] <- 0
    if (init>1) Xhat[missing] <- rnorm(length(missing)) ## random initialization
    recon <- Xhat
-
-   nb.iter <- 1
-   old <- Inf
+   if (ncp==0) nb.iter=0
+   
    while (nb.iter > 0) {
        Xhat[missing] <- recon[missing]
        if (scale) Xhat=sweep(Xhat,2,et, FUN="*")
@@ -36,24 +37,19 @@ impute <- function (X, ncp = 4, scale=TRUE, method=NULL,threshold = 1e-6,seed = 
        sigma2 <- mean(svd.res$vs[-(1:ncp)]^2)
        sigma2 <- min(sigma2*coeff.ridge,svd.res$vs[ncp+1]^2)
        if (method=="em") sigma2 <-0
-
-       if (ncp==1) {
-         lambda.shrinked=(svd.res$vs[1]^2-sigma2)/svd.res$vs[1]
-         recon=tcrossprod(sweep(svd.res$U[,1],1,row.w,FUN="*")*lambda.shrinked[1],svd.res$V[,1])
-       } else {
-         lambda.shrinked=(svd.res$vs[1:ncp]^2-sigma2)/svd.res$vs[1:ncp]
-         recon = tcrossprod(sweep(sweep(svd.res$U[,1:ncp],1,row.w,FUN="*"),2,lambda.shrinked,FUN="*"),svd.res$V[,1:ncp])
-       }
+       lambda.shrinked=(svd.res$vs[1:ncp]^2-sigma2)/svd.res$vs[1:ncp]
+       recon = tcrossprod(sweep(sweep(svd.res$U[,1:ncp,drop=FALSE],1,row.w,FUN="*"),2,lambda.shrinked,FUN="*"),svd.res$V[,1:ncp,drop=FALSE])
        recon <- sweep(recon,1,row.w,FUN="/")
 	   diff <- Xhat-recon
 	   diff[missing] <- 0
-       objective <- mean(sweep(diff^2,1,row.w,FUN="*"))
+       objective <- sum(sweep(diff^2,1,row.w,FUN="*"))
 #       objective <- mean((Xhat[-missing]-recon[-missing])^2)
        criterion <- abs(1 - objective/old)
        old <- objective
        nb.iter <- nb.iter + 1
        if (!is.nan(criterion)) {
          if ((criterion < threshold) && (nb.iter > 5))  nb.iter <- 0
+         if ((objective < threshold) && (nb.iter > 5))  nb.iter <- 0
        }
        if (nb.iter>maxiter) {
          nb.iter <- 0

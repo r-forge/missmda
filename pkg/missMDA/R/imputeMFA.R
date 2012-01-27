@@ -68,7 +68,7 @@ impute <- function (X, group, ncp = 2, type=rep("s",length(group)), method=NULL,
           aux.base <- as.matrix(sweep(as.data.frame(aux.base), 2, ET[[g]], FUN = "/"))
           missing <- which(is.na(as.matrix(aux.base)))
           if (any(is.na(aux.base))) aux.base[missing] <- 0
-          ponderation[g] = svd.triplet(aux.base,ncp=1,row.w=row.w)$vs[1]				  
+          ponderation[g] <- svd.triplet(aux.base,ncp=1,row.w=row.w)$vs[1]
 		  Xhat <- cbind.data.frame(Xhat, aux.base/ponderation[g])
           if (init>1) Xhat[missing] <- rnorm(length(missing)) ## random initialization
         }
@@ -150,12 +150,13 @@ impute <- function (X, group, ncp = 2, type=rep("s",length(group)), method=NULL,
 
 	 diff <- Xhat-recon
 	 diff[missing] <- 0
-     objective <- mean(sweep(diff^2,1,row.w,FUN="*"))
+     objective <- sum(sweep(diff^2,1,row.w,FUN="*"))
      criterion <- abs(1 - objective/old)
      old <- objective
      nb.iter <- nb.iter + 1
      if (!is.nan(criterion)) {
        if ((criterion < threshold) && (nb.iter > 5))  nb.iter <- 0
+       if ((objective < threshold) && (nb.iter > 5))  nb.iter <- 0
      }
      if (nb.iter>maxiter) {
        nb.iter <- 0
